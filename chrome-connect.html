@@ -26,12 +26,28 @@ document.querySelector('chrome-connect')
 </script>
 ```
 
+The element connects automatically to external extension if the extension conect
+to this extension, this extension is not connected yet and the external extension
+is whitelisted in the `allowedClients` property.
+
 @group Logic Elements
 @element chrome-connect
 -->
 <script>
 Polymer({
   is: 'chrome-connect',
+  /**
+   * Fires when error ocurred.
+   *
+   * @event error
+   * @param {Object} An error object.
+   */
+  /**
+   * Fires when message has been received.
+   *
+   * @event message
+   * @param {Any} Message received from externall extension / app.
+   */
   properties: {
     // An ID of the extension to connect to.
     extensionId: String,
@@ -143,10 +159,7 @@ Polymer({
     if (!this.allowedClients || this.allowedClients.indexOf(sender.id) === -1) {
       return;
     }
-    if (!message) {
-      return;
-    }
-    if (sender.id === this.extensionId && !this.connected && message.loaded) {
+    if (sender.id === this.extensionId && !this.connected) {
       this.connect(this.extensionId);
     }
   }

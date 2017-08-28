@@ -1,0 +1,136 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+    <script src="../../iron-test-helpers/test-helpers.js"></script>
+    <script src="stub.js"></script>
+    <link rel="import" href="../chrome-connect.html">
+  </head>
+  <body>
+
+    <test-fixture id="basic">
+      <template>
+        <chrome-connect></chrome-connect>
+      </template>
+    </test-fixture>
+
+    <script>
+    /* global fixture, assert, sinon */
+    const extensionId = 'abc123';
+
+    suite('Making a connection', function() {
+      var element;
+
+      setup(function() {
+        element = fixture('basic');
+      });
+
+      test('Connect sets the port', function() {
+        element.connect(extensionId);
+        assert.typeOf(element.port, 'object', 'Port is set');
+      });
+
+      test('Connect sets the _connectionTest', function() {
+        element.connect(extensionId);
+        assert.equal(element._connectionTest, true);
+      });
+
+      test('Connect tests the connection', function(done) {
+        element.connect(extensionId);
+        setTimeout(function() {
+          assert.equal(element._connectionTest, true, '_connectionTest is set');
+          assert.equal(element.connected, true, 'Connected is set');
+          done();
+        }, 60);
+      });
+
+      test('_connectionTest is false when connection fails', function(done) {
+        element.connect(extensionId);
+        element.port.onDisconnect.nofifyListeners();
+        setTimeout(function() {
+          assert.equal(element._connectionTest, false, '_connectionTest is false');
+          assert.equal(element.connected, false, 'connected is false');
+          assert.isUndefined(element.port, 'port is undefined');
+          done();
+        }, 60);
+      });
+
+      test('Auto connects when extensionId changes', function() {
+        assert.isUndefined(element.port, 'port is undefined');
+        element.extensionId = extensionId;
+        assert.typeOf(element.port, 'object', 'Port is set');
+      });
+    });
+
+    suite('Communication', function() {
+      var element;
+
+      setup(function() {
+        element = fixture('basic');
+      });
+
+      test('Throws error when posting message without connecting', function() {
+        var throwned = false;
+        element.addEventListener('error', function(e) {
+          e.stopPropagation();
+        });
+        try {
+          element.postMessage({});
+        } catch (e) {
+          throwned = true;
+        }
+        assert.isTrue(throwned);
+      });
+      test('Sends error event when posting message without connecting', function() {
+        var spy = sinon.spy();
+        element.addEventListener('error', spy);
+        element.addEventListener('error', function(e) {
+          e.stopPropagation();
+        });
+        try {
+          element.postMessage({});
+        } catch (e) {
+
+        }
+        assert.isTrue(spy.calledOnce);
+      });
+
+      test('Sends the message', function() {
+        element.connect(extensionId);
+        element.postMessage({});
+        assert.isTrue(element.port.calledOnce);
+      });
+
+      test('Sets lastMessage property on message received', function() {
+        const message = 'TEST';
+        element.connect(extensionId);
+        element.port.onMessage.nofifyListeners(message);
+        assert.equal(element.lastMessage, message);
+      });
+
+      test('Fires message custom event', function() {
+        const message = 'TEST';
+        element.connect(extensionId);
+        var spy = sinon.spy();
+        element.addEventListener('message', spy);
+        element.port.onMessage.nofifyListeners(message);
+        assert.isTrue(spy.calledOnce);
+      });
+    });
+    </script>
+
+  </body>
+</html>
